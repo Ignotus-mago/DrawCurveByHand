@@ -1,5 +1,5 @@
 /** 
- * Provides storage for a cubic Bezier curves's control points and terminal anchor point. 
+ * Provides storage for a cubic Bezier curves's control points and anchor point. 
  * Adapted from the Processing library IgnoCodeLib, https://processing.org/reference/libraries/
  */
 public class BezVertex implements Vertex2DINF {

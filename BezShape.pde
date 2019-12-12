@@ -1,7 +1,7 @@
 import java.util.ListIterator;
 
 /**
- * Class for paths composed of lines and Bezier curves.
+ * Class to store a path composed of lines and Bezier curves.
  * Adapted from the Processing library IgnoCodeLib, https://processing.org/reference/libraries/
  */
 public class BezShape {

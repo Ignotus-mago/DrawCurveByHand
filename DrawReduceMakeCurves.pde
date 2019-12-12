@@ -1,3 +1,6 @@
+// library for video recording
+import com.hamoid.*;
+
 public ArrayList<PVector> allPoints = new ArrayList<PVector>();
 public ArrayList<PVector> drawPoints = new ArrayList<PVector>();
 public BezShape bezPoints;
@@ -6,8 +9,10 @@ float epsilon = 0;
 float minEpsilon = 1;
 float maxEpsilon = 40;
 boolean isDrawWeighted = false;
-
 PVector currentPoint;
+
+VideoExport videx;
+boolean isRecordingVideo = false;
 
 /**
  * @author Ignotus El Mago :: http://ignot.us :: https://github.com/Ignotus-mago
@@ -20,16 +25,23 @@ public void settings() {
 public void setup() {
   epsilon = 5.0f;
   currentPoint = new PVector(-1, -1);
+  videx = new VideoExport(this);
   printHelpMessage();
 }
 
 public void draw() {
   background(255);
+  if (!(allPoints.size() > 0)) {
+    writeToScreen("Draw something!");
+  }
   if (mousePressed) addPoint();
   RDPDraw();
   curveDraw();
   if (null != bezPoints) {
     printSizes(false);
+  }
+  if (isRecordingVideo) {
+    videx.saveFrame();
   }
 }
 
@@ -121,6 +133,18 @@ public void keyPressed() {
     //    weightedBezPoints.setIsClosed(bezPoints.isClosed());
     //  }
     //  break;
+    case 'v':
+      isRecordingVideo = !isRecordingVideo;
+      /* */
+      if (isRecordingVideo) {
+        videx.setFrameRate(24);
+        videx.startMovie();
+      } 
+      else {
+        videx.endMovie();
+      }
+      println("----- video recording is "+ isRecordingVideo);
+      break;
     case 'H':
     case 'h':
       // print help message to console
@@ -148,7 +172,7 @@ public void mousePressed() {
 
 public void addPoint() {
   if (mouseX != currentPoint.x || mouseY != currentPoint.y) {
-    // another way to thin points:
+    // a quick way to thin points as you draw:
     // if (manhattanDistance(currentPoint.x, currentPoint.y, mouseX, mouseY) < 4) return;
     currentPoint = new PVector(mouseX, mouseY);
     allPoints.add(currentPoint); 
@@ -181,12 +205,16 @@ public void printSizes(boolean useConsole) {
     println(msg);
   }
   else {
+    writeToScreen(msg);
+  }
+}
+
+public void writeToScreen(String msg) {
     pushStyle();
-    fill(64);
-    textSize(12);
+    fill(96);
+    textSize(18);
     text(msg, 16, 756);
     popStyle();
-  }
 }
 
 public void reducePoints() {
@@ -343,7 +371,7 @@ public void computeControlPoints(float[] K, float[] p1, float[] p2) {
 /* ------------- code for weighted Bezier path ------------- */
 
 // the weighted curve adjusts the position of the control points  
-// to the length of the line between the two anchor points
+// in ratio to the length of the line between the two anchor points
 public void calculateWeightedCurve() {
   weightedBezPoints = bezPoints.clone();
   float weight = BezShape.LAMBDA;
