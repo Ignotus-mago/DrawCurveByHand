@@ -1,10 +1,13 @@
 // library for video recording
 import com.hamoid.*;
+// for PDF export
+import processing.pdf.*;
 
 public ArrayList<PVector> allPoints = new ArrayList<PVector>();
 public ArrayList<PVector> drawPoints = new ArrayList<PVector>();
 public BezShape bezPoints;
 public BezShape weightedBezPoints;
+public BezShape brushShape;
 float epsilon = 0;
 float minEpsilon = 1;
 float maxEpsilon = 40;
@@ -37,6 +40,7 @@ public void draw() {
   if (mousePressed) addPoint();
   RDPDraw();
   curveDraw();
+  brushDraw();
   if (null != bezPoints) {
     printSizes(false);
   }
@@ -84,6 +88,15 @@ public void curveDraw() {
   }
 }
 
+public void brushDraw() {
+  if (null != brushShape) {
+    pushStyle();
+    fill(76, 199, 144, 96);
+    noStroke();
+    brushShape.drawQuick();
+    popStyle();
+  }
+}
 
 public void keyPressed() {
   boolean mark;
@@ -121,6 +134,14 @@ public void keyPressed() {
         bezPoints.setIsMarked(mark);
         weightedBezPoints.setIsMarked(mark);
       }
+      break;
+    case 'q':
+    case 'Q':
+      brushShape = quickBrushShape(drawPoints, 24.0);
+      break;
+    case 's':
+    case 'S':
+      saveToPDF();
       break;
     case 'W':
     case 'w':
@@ -160,6 +181,7 @@ public void printHelpMessage() {
   println("Click and drag to draw.");
   println("+ and - keys change epsilon / amount of reduction");
   println("M key shows/hides Bezier anchor and control points.");
+  println("Q key draws a brush stroke.");
   println("W key shifts between Bezier Spline and Weighted Bezier.");
   println("P key prints information to the console");
   println("H key prints this help message.");
@@ -167,6 +189,7 @@ public void printHelpMessage() {
 
 public void mousePressed() {
   allPoints.clear();
+  brushShape = null;
   addPoint();
 }
 
@@ -230,6 +253,59 @@ public void reducePoints() {
     drawPoints.add(midPoint);
   }
   drawPoints.add(end);
+}
+
+/* ------------- SAVE TO PDF FILE ------------- */
+
+public void saveToPDF() {
+  PGraphics pdf = createGraphics(width, height, PDF, "draw.pdf");
+  pdf.beginDraw();
+  pdf.background(255,255,255);
+  // RDPDraw for PGraphics
+  if (allPoints.size() > 0) {
+    pdf.stroke(233, 144, 89, 64);
+    pdf.strokeWeight(8);
+    pdf.noFill();
+    pdf.beginShape();
+    for (PVector vec : allPoints) {
+      pdf.vertex(vec.x, vec.y);
+    }
+    pdf.endShape();
+  }
+  if (drawPoints.size() > 0) {
+    pdf.stroke(233, 89, 144);
+    pdf.trokeWeight(1);
+    pdf.noFill();
+    pdf.beginShape();
+    for (PVector vec : drawPoints) {
+      pdf.vertex(vec.x, vec.y);
+    }
+    pdf.endShape();
+  }
+  // curveDraw for PGraphics
+  if (null != bezPoints && bezPoints.size() > 0) {
+    pdf.pushStyle();
+    pdf.stroke(55, 199, 246);
+    pdf.strokeWeight(2);
+    pdf.noFill();
+    if (isDrawWeighted) {
+      weightedBezPoints.drawQuick(pdf);
+    }
+    else {
+      bezPoints.drawQuick(pdf);
+    }
+    pdf.popStyle();
+  }
+  // brushDraw for PGraphics
+  if (null != brushShape) {
+    pdf.pushStyle();
+    pdf.fill(76, 199, 144, 96);
+    pdf.noStroke();
+    brushShape.drawQuick(pdf);
+    pdf.popStyle();
+  }
+  pdf.dispose();
+  pdf.endDraw();
 }
 
 /* ------------- BEGIN CODE FROM CODING TRAIN ------------- */
@@ -314,6 +390,29 @@ public void calculateCurve() {
   for (int k = 0; k < n - 1; k++) {
     bezPoints.append(xp1[k], yp1[k], xp2[k], yp2[k], drawPoints.get(k+1).x, drawPoints.get(k+1).y);
   }
+}
+
+public BezShape calculateCurve(ArrayList<PVector> framePoints) {
+  int n = framePoints.size();
+  float[] xCoords = new float[n];
+  float[] yCoords = new float[n];
+  int i = 0;
+  for (PVector vec : framePoints) {
+      xCoords[i] = vec.x;
+      yCoords[i] = vec.y;
+      i++;
+  }
+  float[] xp1 = new float[n-1];
+  float[] xp2 = new float[n-1];
+  computeControlPoints(xCoords, xp1, xp2);
+  float[] yp1 = new float[n-1];
+  float[] yp2 = new float[n-1];
+  computeControlPoints(yCoords, yp1, yp2);
+  BezShape bez = new BezShape(this,framePoints.get(0).x, framePoints.get(0).y, false);
+  for (int k = 0; k < n - 1; k++) {
+    bez.append(xp1[k], yp1[k], xp2[k], yp2[k], framePoints.get(k+1).x, framePoints.get(k+1).y);
+  }
+  return bez;
 }
 
 public void computeControlPoints(float[] K, float[] p1, float[] p2) {
@@ -411,6 +510,43 @@ public void calculateWeightedCurve() {
   }
 }
 
+// the weighted curve adjusts the position of the control points  
+// in ratio to the length of the line between the two anchor points
+public void calculateWeightedCurve(BezShape weightedBezPoints) {
+  float weight = (float) BezShape.LAMBDA;
+  ListIterator<Vertex2DINF> it = weightedBezPoints.curveIterator();
+  float x1 = weightedBezPoints.startVertex().x();
+  float y1 = weightedBezPoints.startVertex().y();
+  BezVertex bz;
+  while (it.hasNext()) {
+    Vertex2DINF bez = it.next();
+    if (bez.segmentType() == BezShape.CURVE_SEGMENT) {
+      bz = (BezVertex) bez;
+      // lines from anchors to control point:
+      // (x1, y1), (bz.cx1(), bz.cy1())
+      // (bz.x(), bz.y()), (bz.cx2(), bz.cy2())
+      // distance between anchor points
+      float d = dist(x1, y1, bz.x(), bz.y());
+      PVector cxy1 = weightedControlVec(x1, y1, bz.cx1(), bz.cy1(), weight, d);
+      bz.setCx1(cxy1.x);
+      bz.setCy1(cxy1.y);
+      PVector cxy2 = weightedControlVec(bz.x(), bz.y(), bz.cx2(), bz.cy2(), weight, d);
+      bz.setCx2(cxy2.x);
+      bz.setCy2(cxy2.y);
+      // store the first anchor point for the next iteration
+      x1 = bz.x();
+      y1 = bz.y();
+    }
+    else if (bez.segmentType() == BezShape.LINE_SEGMENT) {
+      x1 = bez.x();
+      y1 = bez.y();
+    }
+    else {
+      // error! should never arrive here
+    }
+  }
+}
+
 public PVector weightedControlVec(float ax, float ay, float cx, float cy, float w, float d) {
   // divide the weighted distance between anchor points by the distance from anchor point to control point
   float t = w * d * 1/(dist(ax, ay, cx, cy));
@@ -418,4 +554,94 @@ public PVector weightedControlVec(float ax, float ay, float cx, float cy, float 
   float x = ax + (cx - ax) * t;
   float y = ay + (cy - ay) * t;
   return new PVector(x, y);
+}
+
+
+// ------------- CODE FOR BRUSH SHAPE ------------- //
+
+// simulate a brushstroke as a vector shape
+public BezShape quickBrushShape(ArrayList<PVector> points, float brushWidth) {
+  ArrayList<PVector> pointsLeft = new ArrayList<PVector>();
+  ArrayList<PVector> pointsRight = new ArrayList<PVector>();
+  if (!(points.size() > 0)) return null;
+  // handle the first point
+  PVector v1 = points.get(0);
+  pointsLeft.add(v1.copy());
+  pointsRight.add(v1.copy());
+  for (int i = 1; i < points.size() - 1; i++) {
+    PVector v2 = points.get(i);
+    PVector v3 = points.get(i+1);
+    // get the normals to the lines (v1, v2) and (v2, v3) at the point v2
+    PVector norm1 = normalAtPoint(v1, v2, 1, 1);
+    PVector norm2 = normalAtPoint(v2, v3, 0, 1);
+    // add the normals together and take the average
+    norm1.add(norm2).mult(0.5);
+    // normalize (probably not necessary, eh?)
+    norm1.sub(v2).normalize();
+    // add points on either side of v2 at distance brushWidth/2
+    pointsLeft.add(scaledNormalAtPoint(v2, norm1, -brushWidth/2));
+    pointsRight.add(scaledNormalAtPoint(v2, norm1, brushWidth/2));
+    v1 = v2;
+  }
+  // handle the last point
+  v1 = points.get(points.size() -1);
+  pointsLeft.add(v1.copy());
+  pointsRight.add(v1.copy());
+  // reverse one of the arrays
+  reverseArray(pointsLeft, 0, pointsLeft.size() - 1);
+  // generate Bezier splines
+  BezShape bezLeft = calculateCurve(pointsLeft);
+  BezShape bezRight = calculateCurve(pointsRight);
+  if (isDrawWeighted) {
+    calculateWeightedCurve(bezLeft);
+    calculateWeightedCurve(bezRight);
+  }
+  // append points in bezLeft to bezRight
+  ListIterator<Vertex2DINF> it = bezLeft.curveIterator();
+  while (it.hasNext()) {
+    bezRight.append(it.next());
+  }
+  bezRight.setIsClosed(true);
+  // return the brushstroke shape in bezRight
+  return bezRight;
+}
+
+// returns a normal to a line at a point on the line at parametric distance u, normalized if d = 1
+public PVector normalAtPoint(PVector a1, PVector a2, float u, float d) {
+  float ax1 = a1.x;
+  float ay1 = a1.y;
+  float ax2 = a2.x;
+  float ay2 = a2.y;
+  // determine the proportions of change on x and y axes for the line segment 
+  float f = (ax2 - ax1);
+  float g = (ay2 - ay1);
+  // get the point on the line segment at u
+  float pux = ax1 + f * u;
+  float puy = ay1 + g * u;
+  // prepare to calculate normalized parametric equations
+  float root = sqrt(f*f + g*g);
+  float inv = 1/root;
+  // plug distance d into normalized parametric equations for normal to line segment
+  float x = pux - g * inv * d;
+  float y = puy + f * inv * d;
+  return new PVector(x, y);
+}
+
+// we're using this to scale normalizd normals at a determined point, but the "normal" could be any vector
+// PVector anchor   the point from which the normal extends
+// PVector normal   a normalized vector
+// float   d        distance from anchor to the returned vector
+public PVector scaledNormalAtPoint(PVector anchor, PVector normal, float d) {
+  return new PVector(anchor.x + normal.x * d, anchor.y + normal.y * d);
+}
+
+public void reverseArray(ArrayList arr, int l, int r) {
+  Object temp;
+  while (l < r) {
+    temp = arr.get(l);
+    arr.set(l, arr.get(r));
+    arr.set(r, temp);
+    l++;
+    r--;
+  }
 }
