@@ -281,5 +281,54 @@ public class BezShape {
       parent.endShape();
     }
   }
+  
+  /** 
+   * Draws this shape to a PGraphics passed as an argument. Calls beginShape and endShape on its own.
+   * Uses current fill, stroke and weight from Processing environment.
+   */
+  public void drawQuick(PGraphics pg) {
+    pg.beginShape();
+    // equivalent to startPoint.draw(this.parent);
+    pg.vertex(this.x, this.y);
+    ListIterator<Vertex2DINF> it = curveIterator();
+    int i = 0;
+    while (it.hasNext()) {
+      Vertex2DINF bez = it.next();
+      bez.draw(pg); 
+      if (isMarked) {
+         if (bez.segmentType() == CURVE_SEGMENT) {
+          pushStyle();
+          noFill();
+          stroke(192);
+          strokeWeight(1);
+          BezVertex bz = (BezVertex)bez;
+          if (i > 0) {
+            line(curves.get(i-1).x(), curves.get(i-1).y(), bz.cx1(), bz.cy1());
+            line(bz.x(), bz.y(), bz.cx2(), bz.cy2());
+          }
+          else {
+            int w = 6;
+            pushStyle();
+            noStroke();
+            fill(160);
+            square(x - w/2, y - w/2, w);
+            popStyle();
+            line(x, y, bz.cx1(), bz.cy1());
+            line(bz.x(), bz.y(), bz.cx2(), bz.cy2());
+          }
+          popStyle();
+        }
+        bez.mark();
+      }
+      i++;
+    }
+    if (isClosed()) {
+      pg.endShape(PApplet.CLOSE);
+    }
+    else {
+      pg.endShape();
+    }
+  }
+
 
 }
