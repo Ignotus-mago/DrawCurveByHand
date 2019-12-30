@@ -142,6 +142,7 @@ public void keyPressed() {
     case 's':
     case 'S':
       saveToPDF();
+      println("----- saved display to a PDF file");
       break;
     case 'W':
     case 'w':
@@ -274,7 +275,7 @@ public void saveToPDF() {
   }
   if (drawPoints.size() > 0) {
     pdf.stroke(233, 89, 144);
-    pdf.trokeWeight(1);
+    pdf.strokeWeight(1);
     pdf.noFill();
     pdf.beginShape();
     for (PVector vec : drawPoints) {
