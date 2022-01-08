@@ -1,4 +1,4 @@
-# DrawReduceMakeCurves
+# DrawCurveByHand
  
 Draw, reduce points, make Bezier curves.
 
