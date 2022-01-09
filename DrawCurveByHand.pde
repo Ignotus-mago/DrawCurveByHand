@@ -12,6 +12,7 @@ public ArrayList<PVector> drawPoints = new ArrayList<PVector>();
 public BezShape bezPoints;
 public BezShape weightedBezPoints;
 public BezShape brushShape;
+boolean isShowBrush = false;
 float epsilon = 0;
 float minEpsilon = 1;
 float maxEpsilon = 40;
@@ -42,7 +43,9 @@ public void draw() {
   if (!(allPoints.size() > 0)) {
     writeToScreen("Draw something!");
   }
-  if (mousePressed) addPoint();
+  if (mousePressed) {
+    addPoint();
+  }
   RDPDraw();
   curveDraw();
   brushDraw();
@@ -94,7 +97,7 @@ public void curveDraw() {
 }
 
 public void brushDraw() {
-  if (null != brushShape) {
+  if (null != brushShape && isShowBrush) {
     pushStyle();
     fill(76, 199, 144, 96);
     noStroke();
@@ -142,7 +145,10 @@ public void keyPressed() {
       break;
     case 'q':
     case 'Q':
-      brushShape = quickBrushShape(drawPoints, 24.0);
+      isShowBrush = !isShowBrush;
+      if (isShowBrush) {
+        brushShape = quickBrushShape(drawPoints, 24.0);
+      }
       break;
     case 's':
     case 'S':
@@ -152,6 +158,9 @@ public void keyPressed() {
     case 'W':
     case 'w':
       isDrawWeighted = !isDrawWeighted;
+      if (isShowBrush) {
+        brushShape = quickBrushShape(drawPoints, 24.0);
+      }
       break;
     //case 'C':
     //case 'c':
@@ -195,6 +204,8 @@ public void printHelpMessage() {
 
 public void mousePressed() {
   allPoints.clear();
+  drawPoints.clear();
+  bezPoints = null;
   brushShape = null;
   addPoint();
 }
@@ -220,6 +231,9 @@ public void calculateDerivedPoints() {
   reducePoints();
   calculateCurve();
   calculateWeightedCurve();
+  if (isShowBrush) {
+    brushShape = quickBrushShape(drawPoints, 24.0);
+  }
 }
 
 public void printSizes(boolean useConsole) {
