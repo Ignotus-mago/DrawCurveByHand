@@ -17,6 +17,7 @@ float minEpsilon = 1;
 float maxEpsilon = 40;
 boolean isDrawWeighted = false;
 PVector currentPoint;
+float proximity = 12.0;
 
 VideoExport videx;
 boolean isRecordingVideo = false;

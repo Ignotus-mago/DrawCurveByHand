@@ -3,6 +3,9 @@
  * https://thecodingtrain.com/CodingChallenges/152-rdp-algorithm.html 
  */
 
+/**
+ * Ramer-Douglas-Peucker algorithm (RDP)
+ */
 void rdp(int startIndex, int endIndex, ArrayList<PVector> allPoints, ArrayList<PVector> rdpPoints) {
   int nextIndex = findFurthest(allPoints, startIndex, endIndex);
   if (nextIndex > 0) {
@@ -159,8 +162,9 @@ public void computeControlPoints(float[] K, float[] p1, float[] p2) {
 
 /* ------------- code for weighted Bezier path ------------- */
 
-// the weighted curve adjusts the position of the control points  
-// in ratio to the length of the line between the two anchor points
+// the weighted curve scales the position of the control points  
+// by a factor determined by the length of the line between the two anchor points
+// it's most useful when a short line segment follows a long segment. 
 public void calculateWeightedCurve() {
   weightedBezPoints = bezPoints.clone();
   float weight = BezShape.LAMBDA;
@@ -200,8 +204,9 @@ public void calculateWeightedCurve() {
   }
 }
 
-// the weighted curve adjusts the position of the control points  
-// in ratio to the length of the line between the two anchor points
+// the weighted curve scales the position of the control points  
+// by a factor determined by the length of the line between the two anchor points
+// it's most useful when a short line segment follows a long segment. 
 public void calculateWeightedCurve(BezShape weightedBezPoints) {
   float weight = (float) BezShape.LAMBDA;
   ListIterator<Vertex2DINF> it = weightedBezPoints.curveIterator();
