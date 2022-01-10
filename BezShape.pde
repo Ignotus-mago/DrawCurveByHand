@@ -2,7 +2,12 @@ import java.util.ListIterator;
 
 /**
  * Class to store a path composed of lines and Bezier curves.
+ *
  * Adapted from the Processing library IgnoCodeLib, https://processing.org/reference/libraries/
+ * The library has disappeared from the Processing contributed libraries page. An issue has been posted to 
+ * try to resolve why it disappeared -- possibly because my website has migrated.
+ * You can find it at https://paulhertz.net/ignocodelib/ and https://github.com/Ignotus-mago/IgnoCodeLib3
+ *
  */
 public class BezShape {
   /** PApplet for callbacks to Processing drawing environment, etc. Used by constructors */

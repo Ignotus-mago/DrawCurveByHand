@@ -10,8 +10,6 @@
  *    This version of the code declares classes Vertex2DINF, LineVertex, BezVertex and BezShape.
  *    A second version uses the same classes from my Processing library IgnoCodeLib. 
  * 
- *    @author Paul Hertz, Chicago, 2022 <ignotusATgmailDOTcom>, https://github.com/Ignotus-mago
- *
  *    Click and drag to draw.
  *    + and - keys change epsilon / amount of point reduction 
  *    M key shows/hides Bezier anchor and control points.
@@ -22,6 +20,9 @@
  *    V key saves to SVG format
  *    H key prints this help message.
  *
+ *    @author Paul Hertz, Chicago, 2022 <ignotusATgmailDOTcom>, https://github.com/Ignotus-mago
+ *
+ *    The RDP and curve- and  brush-modeling will be added to the next version of IgnoCodeLib.
  */
 
 // for PDF export

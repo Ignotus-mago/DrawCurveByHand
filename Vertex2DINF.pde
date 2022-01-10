@@ -1,11 +1,16 @@
 /**
  * Interface for line and curve vertices. Classes that implement this interface must implement
  * all the methods listed below. 
+ *
+ * Adapted from the Processing library IgnoCodeLib, https://processing.org/reference/libraries/
+ * The library has disappeared from the Processing contributed libraries page. An issue has been posted to 
+ * try to resolve why it disappeared -- possibly because my website has migrated.
+ * You can find it at https://paulhertz.net/ignocodelib/ and https://github.com/Ignotus-mago/IgnoCodeLib3
+ *
  */
 public interface Vertex2DINF {
   /**
    * @return x-coordinate as a float
-   * Adapted from the Processing library IgnoCodeLib, https://processing.org/reference/libraries/
    */
   public float x();
   /**

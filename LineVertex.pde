@@ -1,6 +1,11 @@
 /**
  * Stores a line vertex consisting of a single point.
+ *
  * Adapted from the Processing library IgnoCodeLib, https://processing.org/reference/libraries/
+ * The library has disappeared from the Processing contributed libraries page. An issue has been posted to 
+ * try to resolve why it disappeared -- possibly because my website has migrated.
+ * You can find it at https://paulhertz.net/ignocodelib/ and https://github.com/Ignotus-mago/IgnoCodeLib3
+ *
  */
 public class LineVertex implements Vertex2DINF {
   /** x-coordinate of anchor point */
