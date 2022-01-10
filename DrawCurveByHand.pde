@@ -4,6 +4,7 @@
  *    2. Reduce the total number of points with the Ramer-Douglas-Peucker algorithm (red line)
  *  ` 3. Turn the reduced point set into a Bezier spline, a smooth, continuous curve that 
  *       can be represented with Bezier curves. (blue line)
+ *       You can also create a weighted Bezier, which may fit the drawn line a little better.
  *    4. Offset the curve to either side to simulate a brushstroke. (transparent green)
  * 
  *    This version of the code declares classes Vertex2DINF, LineVertex, BezVertex and BezShape.
@@ -33,19 +34,21 @@ public ArrayList<PVector> drawPoints = new ArrayList<PVector>();
 public BezShape bezPoints;
 public BezShape weightedBezPoints;
 public BezShape brushShape;
+public PGraphics buffer;
+boolean isRefreshBuffer = false;
 boolean isShowBrush = false;
 float epsilon = 0;
 float minEpsilon = 1;
 float maxEpsilon = 40;
 boolean isDrawWeighted = false;
 PVector currentPoint;
-float proximity = 12.0;
 color dragColor = color(233, 144, 89, 64);    // tan
 color rdpColor = color(233, 89, 144);         // red
 color curveColor = color(55, 199, 246);       // blue
 color brushColor = color(76, 199, 144, 96);   // tranparent green
 
 public void settings() {
+  // we may get greater speed with the P2D renderer
   size(1024, 768, P2D);
 }
 
@@ -62,13 +65,26 @@ public void draw() {
   }
   if (mousePressed) {
     addPoint();
+    isRefreshBuffer = true;
   }
-  RDPDraw();
-  curveDraw();
-  brushDraw();
+  if (isRefreshBuffer) {
+    // recalculate everything, including the image in the buffer, whenever necessary
+    freshDraw();
+    isRefreshBuffer = false;
+  }
+  // most of the time through the draw loop, we don't redo all our calculations, 
+  // we just draw the buffer to the screen. We call freshDraw() only when the drawing changes.
+  if (null != buffer) image(buffer, 0, 0);
   if (null != bezPoints) {
     printSizes(false);
   }
+}
+
+public void freshDraw() {
+  RDPDraw();
+  curveDraw();
+  brushDraw();
+  buffer = drawToPGraphics();
 }
 
 public void RDPDraw() {
@@ -132,6 +148,7 @@ public void keyPressed() {
       calculateDerivedPoints();
       bezPoints.setIsMarked(mark);
       weightedBezPoints.setIsMarked(mark);
+      isRefreshBuffer = true;
       break;
     case '-':
     case '_': 
@@ -142,6 +159,7 @@ public void keyPressed() {
       calculateDerivedPoints();
       bezPoints.setIsMarked(mark);
       weightedBezPoints.setIsMarked(mark);
+      isRefreshBuffer = true;
       break;
     case 'i':
     case 'I':
@@ -149,7 +167,7 @@ public void keyPressed() {
       break;
     case 'p': 
     case 'P':
-      saveToPDF("savePDF.pdf");
+      saveToPDF("drawPDF.pdf");
       println("----- saved graphics to a PDF file");
       break;
     case 'M':
@@ -160,6 +178,7 @@ public void keyPressed() {
         bezPoints.setIsMarked(mark);
         weightedBezPoints.setIsMarked(mark);
       }
+      isRefreshBuffer = true;
       break;
     case 'q':
     case 'Q':
@@ -167,6 +186,7 @@ public void keyPressed() {
       if (isShowBrush) {
         brushShape = quickBrushShape(drawPoints, 24.0);
       }
+      isRefreshBuffer = true;
       break;
     case 's':
     case 'S':
@@ -178,6 +198,7 @@ public void keyPressed() {
       if (isShowBrush) {
         brushShape = quickBrushShape(drawPoints, 24.0);
       }
+      isRefreshBuffer = true;
       break;
     //case 'C':
     //case 'c':
@@ -232,6 +253,7 @@ public void addPoint() {
 
 public void mouseReleased() {
   calculateDerivedPoints();
+  freshDraw();
 }
 
 public void calculateDerivedPoints() {
