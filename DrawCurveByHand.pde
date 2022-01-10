@@ -1,7 +1,28 @@
-// Development version of code example for IgnoCodeLib
+/**
+ * How to transform a gesture made by dragging the mouse into a Bezier curve:
+ *    1. Draw a line, curvy or crooked as you like. Capture points with mouseX, mouseY. (tan line)
+ *    2. Reduce the total number of points with the Ramer-Douglas-Peucker algorithm (red line)
+ *  ` 3. Turn the reduced point set into a Bezier spline, a smooth, continuous curve that 
+ *       can be represented with Bezier curves. (blue line)
+ *    4. Offset the curve to either side to simulate a brushstroke. (transparent green)
+ * 
+ *    This version of the code declares classes Vertex2DINF, LineVertex, BezVertex and BezShape.
+ *    A second version uses the same classes from my Processing library IgnoCodeLib. 
+ * 
+ *    @author Paul Hertz, Chicago, 2022 <ignotusATgmailDOTcom>, https://github.com/Ignotus-mago
+ *
+ *    Click and drag to draw.
+ *    + and - keys change epsilon / amount of point reduction 
+ *    M key shows/hides Bezier anchor and control points.
+ *    Q key draws a brush stroke.
+ *    W key shifts between Bezier Spline and Weighted Bezier.
+ *    I key prints information to the console
+ *    P key saves to PDF format
+ *    V key saves to SVG format
+ *    H key prints this help message.
+ *
+ */
 
-// library for video recording
-import com.hamoid.*;
 // for PDF export
 import processing.pdf.*;
 // for SVG export
@@ -19,22 +40,18 @@ float maxEpsilon = 40;
 boolean isDrawWeighted = false;
 PVector currentPoint;
 float proximity = 12.0;
-
-VideoExport videx;
-boolean isRecordingVideo = false;
-
-/**
- * @author Ignotus El Mago :: http://ignot.us :: https://github.com/Ignotus-mago
- */
+color dragColor = color(233, 144, 89, 64);    // tan
+color rdpColor = color(233, 89, 144);         // red
+color curveColor = color(55, 199, 246);       // blue
+color brushColor = color(76, 199, 144, 96);   // tranparent green
 
 public void settings() {
-  size(1024, 768);
+  size(1024, 768, P2D);
 }
 
 public void setup() {
   epsilon = 5.0f;
   currentPoint = new PVector(-1, -1);
-  videx = new VideoExport(this);
   printHelpMessage();
 }
 
@@ -52,14 +69,11 @@ public void draw() {
   if (null != bezPoints) {
     printSizes(false);
   }
-  if (isRecordingVideo) {
-    videx.saveFrame();
-  }
 }
 
 public void RDPDraw() {
   if (allPoints.size() > 0) {
-    stroke(233, 144, 89, 64);
+    stroke(dragColor);
     strokeWeight(8);
     noFill();
     beginShape();
@@ -69,7 +83,7 @@ public void RDPDraw() {
     endShape();
   }
   if (drawPoints.size() > 0) {
-    stroke(233, 89, 144);
+    stroke(rdpColor);
     strokeWeight(1);
     noFill();
     beginShape();
@@ -83,7 +97,7 @@ public void RDPDraw() {
 public void curveDraw() {
   if (null != bezPoints && bezPoints.size() > 0) {
     pushStyle();
-    stroke(55, 199, 246);
+    stroke(curveColor);
     strokeWeight(2);
     noFill();
     if (isDrawWeighted) {
@@ -99,7 +113,7 @@ public void curveDraw() {
 public void brushDraw() {
   if (null != brushShape && isShowBrush) {
     pushStyle();
-    fill(76, 199, 144, 96);
+    fill(brushColor);
     noStroke();
     brushShape.drawQuick();
     popStyle();
@@ -109,11 +123,6 @@ public void brushDraw() {
 public void keyPressed() {
   boolean mark;
   switch(key) {
-    case 'p': 
-    case 'P':
-    // print sizes to console
-      printSizes(true);
-      break;
     case '=':
     case '+': 
       // increment epsilon
@@ -134,6 +143,15 @@ public void keyPressed() {
       bezPoints.setIsMarked(mark);
       weightedBezPoints.setIsMarked(mark);
       break;
+    case 'i':
+    case 'I':
+      printSizes(true);
+      break;
+    case 'p': 
+    case 'P':
+      saveToPDF("savePDF.pdf");
+      println("----- saved graphics to a PDF file");
+      break;
     case 'M':
     case 'm':
       // mark control points on Bezier curve 
@@ -152,9 +170,8 @@ public void keyPressed() {
       break;
     case 's':
     case 'S':
-      saveToPDF();
-      println("----- saved display to a PDF file");
       break;
+      // 
     case 'W':
     case 'w':
       isDrawWeighted = !isDrawWeighted;
@@ -170,16 +187,8 @@ public void keyPressed() {
     //  }
     //  break;
     case 'v':
-      isRecordingVideo = !isRecordingVideo;
-      /* */
-      if (isRecordingVideo) {
-        videx.setFrameRate(24);
-        videx.startMovie();
-      } 
-      else {
-        videx.endMovie();
-      }
-      println("----- video recording is "+ isRecordingVideo);
+      saveToSVG("drawSVG.svg");
+      println("----- saved graphics to an SVG file");
       break;
     case 'H':
     case 'h':
@@ -198,30 +207,28 @@ public void printHelpMessage() {
   println("M key shows/hides Bezier anchor and control points.");
   println("Q key draws a brush stroke.");
   println("W key shifts between Bezier Spline and Weighted Bezier.");
-  println("P key prints information to the console");
+  println("I key prints information to the console");
+  println("P key saves to PDF format");
+  println("V key saves to SVG format");
   println("H key prints this help message.");
 }
 
 public void mousePressed() {
+  // clear the slate to begin a new drawing
   allPoints.clear();
   drawPoints.clear();
   bezPoints = null;
   brushShape = null;
+  // add the first point
   addPoint();
 }
 
 public void addPoint() {
   if (mouseX != currentPoint.x || mouseY != currentPoint.y) {
-    // a quick way to thin points as you draw:
-    // if (manhattanDistance(currentPoint.x, currentPoint.y, mouseX, mouseY) < 4) return;
     currentPoint = new PVector(mouseX, mouseY);
     allPoints.add(currentPoint); 
   }
 }
-
-public float manhattanDistance(float x1, float y1, float x2, float y2) {
-  return abs(x2 - x1) + abs(y2 - y1);
-} 
 
 public void mouseReleased() {
   calculateDerivedPoints();
@@ -275,55 +282,78 @@ public void reducePoints() {
   drawPoints.add(end);
 }
 
-/* ------------- SAVE TO PDF FILE ------------- */
+/* ------------- PGraphics Output ------------- */
 
-public void saveToPDF() {
-  PGraphics pdf = createGraphics(width, height, PDF, "draw.pdf");
-  pdf.beginDraw();
-  pdf.background(255,255,255);
+// example of how to draw to a PGraphics
+public PGraphics drawToPGraphics() {
+  PGraphics pix = createGraphics(width, height);
+  pix.beginDraw();
+  pix.background(255,255,255);
   // RDPDraw for PGraphics
   if (allPoints.size() > 0) {
-    pdf.stroke(233, 144, 89, 64);
-    pdf.strokeWeight(8);
-    pdf.noFill();
-    pdf.beginShape();
+    pix.stroke(dragColor);
+    pix.strokeWeight(8);
+    pix.noFill();
+    pix.beginShape();
     for (PVector vec : allPoints) {
-      pdf.vertex(vec.x, vec.y);
+      pix.vertex(vec.x, vec.y);
     }
-    pdf.endShape();
+    pix.endShape();
   }
   if (drawPoints.size() > 0) {
-    pdf.stroke(233, 89, 144);
-    pdf.strokeWeight(1);
-    pdf.noFill();
-    pdf.beginShape();
+    pix.stroke(rdpColor);
+    pix.strokeWeight(1);
+    pix.noFill();
+    pix.beginShape();
     for (PVector vec : drawPoints) {
-      pdf.vertex(vec.x, vec.y);
+      pix.vertex(vec.x, vec.y);
     }
-    pdf.endShape();
+    pix.endShape();
   }
   // curveDraw for PGraphics
   if (null != bezPoints && bezPoints.size() > 0) {
-    pdf.pushStyle();
-    pdf.stroke(55, 199, 246);
-    pdf.strokeWeight(2);
-    pdf.noFill();
+    pix.pushStyle();
+    pix.stroke(curveColor);
+    pix.strokeWeight(2);
+    pix.noFill();
     if (isDrawWeighted) {
-      weightedBezPoints.drawQuick(pdf);
+      weightedBezPoints.drawQuick(pix);
     }
     else {
-      bezPoints.drawQuick(pdf);
+      bezPoints.drawQuick(pix);
     }
-    pdf.popStyle();
+    pix.popStyle();
   }
   // brushDraw for PGraphics
   if (null != brushShape) {
-    pdf.pushStyle();
-    pdf.fill(76, 199, 144, 96);
-    pdf.noStroke();
-    brushShape.drawQuick(pdf);
-    pdf.popStyle();
+    pix.pushStyle();
+    pix.fill(brushColor);
+    pix.noStroke();
+    brushShape.drawQuick(pix);
+    pix.popStyle();
   }
-  pdf.dispose();
-  pdf.endDraw();
+  pix.endDraw();
+  return pix;
+}
+
+/* ------------- SAVE TO PDF FILE ------------- */
+
+public void saveToPDF(String pdfFileName) {
+  beginRecord(PDF, pdfFileName);
+  RDPDraw();
+  curveDraw();
+  brushDraw();
+  endRecord();
+}
+
+/* ------------- SAVE TO SVG FILE ------------- */
+
+// output to an SVG file. In P3, this method throws "textMode(SHAPE) is not supported by this renderer."
+// Don't worry, this apparent error does not seem to affect the output. 
+public void saveToSVG(String svgFileName) {
+  beginRecord(SVG, svgFileName);
+  RDPDraw();
+  curveDraw();
+  brushDraw();
+  endRecord();
 }

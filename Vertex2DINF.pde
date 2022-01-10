@@ -1,5 +1,6 @@
 /**
- * Interface for line and curve vertices. 
+ * Interface for line and curve vertices. Classes that implement this interface must implement
+ * all the methods listed below. 
  */
 public interface Vertex2DINF {
   /**
@@ -39,7 +40,6 @@ public interface Vertex2DINF {
   public void draw(PGraphics pg);
   /**
    * Draws marks at vertices and control points.
-   *
    */
   public void mark();
 }
