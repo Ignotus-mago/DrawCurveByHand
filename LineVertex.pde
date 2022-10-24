@@ -77,4 +77,13 @@ public class LineVertex implements Vertex2DINF {
     popStyle();
   }
 
+  public void mark(PGraphics pg) {
+    int w = 6;
+    pg.pushStyle();
+    pg.noStroke();
+    pg.fill(160);
+    pg.square(x - w/2, y - w/2, w);
+    pg.popStyle();
+  }
+
 }

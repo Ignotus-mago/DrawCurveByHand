@@ -36,6 +36,7 @@ public BezShape bezPoints;
 public BezShape weightedBezPoints;
 public BezShape brushShape;
 public PGraphics buffer;
+boolean isUseBuffer = true;
 boolean isRefreshBuffer = false;
 boolean isShowBrush = false;
 float epsilon = 0;
@@ -50,7 +51,7 @@ color brushColor = color(76, 199, 144, 96);   // tranparent green
 
 public void settings() {
   // we may get greater speed with the P2D renderer
-  size(1024, 768, P2D);
+  size(1280, 800);
 }
 
 public void setup() {
@@ -62,34 +63,36 @@ public void setup() {
 public void draw() {
   background(255);
   if (!(allPoints.size() > 0)) {
-    writeToScreen("Draw something!");
+    writeToScreen("Draw something! "+ mouseX +", "+ mouseY);
   }
   if (mousePressed) {
     addPoint();
     isRefreshBuffer = true;
   }
-  if (isRefreshBuffer) {
-    // recalculate everything, including the image in the buffer, whenever necessary
-    freshDraw();
-    isRefreshBuffer = false;
-  }
+  freshDraw();
+  // if we have set up buffered drawing (isUseBuffer = true) //<>//
   // most of the time through the draw loop, we don't redo all our calculations, 
   // we just draw the buffer to the screen. We call freshDraw() only when the drawing changes.
-  if (null != buffer) image(buffer, 0, 0);
+  if (null != buffer && isUseBuffer) image(buffer, 0, 0);
   if (null != bezPoints) {
     printSizes(false);
   }
 }
 
 public void freshDraw() {
-  RDPDraw();
-  curveDraw();
-  brushDraw();
-  buffer = drawToPGraphics();
+  if (isUseBuffer && isRefreshBuffer) {
+    buffer = drawToPGraphics();
+    isRefreshBuffer = false;
+  }
+  else {
+    RDPDraw();
+    curveDraw();
+    brushDraw();
+  }
 }
 
 public void RDPDraw() {
-  if (allPoints.size() > 0) {
+  if (allPoints.size() > 1) {
     stroke(dragColor);
     strokeWeight(8);
     noFill();
@@ -99,7 +102,7 @@ public void RDPDraw() {
     }
     endShape();
   }
-  if (drawPoints.size() > 0) {
+  if (drawPoints.size() > 1) {
     stroke(rdpColor);
     strokeWeight(1);
     noFill();
@@ -129,11 +132,7 @@ public void curveDraw() {
 
 public void brushDraw() {
   if (null != brushShape && isShowBrush) {
-    pushStyle();
-    fill(brushColor);
-    noStroke();
-    brushShape.drawQuick();
-    popStyle();
+    brushShape.draw();
   }
 }
 
@@ -186,13 +185,16 @@ public void keyPressed() {
       isShowBrush = !isShowBrush;
       if (isShowBrush) {
         brushShape = quickBrushShape(drawPoints, 24.0);
+        // use color commands for the shape
+        brushShape.setNoStroke();
+        brushShape.setFillColor(brushColor);
       }
       isRefreshBuffer = true;
       break;
     case 's':
     case 'S':
       break;
-      // 
+      // not implemented
     case 'W':
     case 'w':
       isDrawWeighted = !isDrawWeighted;
@@ -211,6 +213,19 @@ public void keyPressed() {
     case 'v':
       saveToSVG("drawSVG.svg");
       println("----- saved graphics to an SVG file");
+      break;
+    case 'z':
+    case 'Z':
+      if (null != bezPoints) {
+        ArrayList<PVector> cpoints = bezPoints.getPointList(64);
+        ListIterator<PVector> it = cpoints.listIterator();
+        println("\n\n----->>> BEGIN POINTS <<<-----");
+        while(it.hasNext()) {
+          PVector pv = it.next();
+          println(pv.x+","+pv.y+",");
+        }
+        println("----->>> END POINTS <<<-----\n\n");
+      }
       break;
     case 'H':
     case 'h':
@@ -254,7 +269,7 @@ public void addPoint() {
 
 public void mouseReleased() {
   calculateDerivedPoints();
-  freshDraw();
+  isRefreshBuffer = true;
 }
 
 public void calculateDerivedPoints() {
@@ -263,6 +278,8 @@ public void calculateDerivedPoints() {
   calculateWeightedCurve();
   if (isShowBrush) {
     brushShape = quickBrushShape(drawPoints, 24.0);
+    brushShape.setNoStroke();
+    brushShape.setFillColor(brushColor);
   }
 }
 
@@ -273,7 +290,7 @@ public void printSizes(boolean useConsole) {
   
   String msg = ("For epsilon of "+ nf(epsilon, 0, 2) +": all points: "+ allSize +", reduced points: "+ 
            drawSize +", "+ nf(percent, 0, 2) +"% reduction, Curve points: "+ (bezPoints.pointCount() + 1));
-  msg += isDrawWeighted ? ", Weighted Bezier" : ", Bezier Spline";
+  msg += isDrawWeighted ? ", Weighted Bezier" : ", Bezier Spline  ::"+ mouseX +", "+ mouseY;
   if (useConsole) {
     println(msg);
   }
@@ -348,12 +365,9 @@ public PGraphics drawToPGraphics() {
     pix.popStyle();
   }
   // brushDraw for PGraphics
-  if (null != brushShape) {
-    pix.pushStyle();
-    pix.fill(brushColor);
-    pix.noStroke();
-    brushShape.drawQuick(pix);
-    pix.popStyle();
+  if (null != brushShape && isShowBrush) {
+    // use color data fields in brushShape
+    brushShape.draw(pix);
   }
   pix.endDraw();
   return pix;

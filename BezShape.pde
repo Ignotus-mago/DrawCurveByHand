@@ -1,7 +1,7 @@
 import java.util.ListIterator;
 
 /**
- * Class to store a path composed of lines and Bezier curves.
+ * Class to store a path composed of lines and Bezier curves, along with fill, stroke, weight and opacity values.
  *
  * Adapted from the Processing library IgnoCodeLib, https://processing.org/reference/libraries/
  * The library has disappeared from the Processing contributed libraries page. An issue has been posted to 
@@ -11,21 +11,34 @@ import java.util.ListIterator;
  */
 public class BezShape {
   /** PApplet for callbacks to Processing drawing environment, etc. Used by constructors */
-  protected PApplet parent;
+  PApplet parent;
   /** initial x-coordinate */
-  protected float x;
+  float x;
   /** initial y-coordinate */
-  protected float y;
+  float y;
   /** list of bezier vertices */
   private ArrayList<Vertex2DINF> curves;
   /** flags if shape is closed or not */
-  protected boolean isClosed = false;
+  boolean isClosed = false;
   /** flags we shoud draw control points and vertices */
-  protected boolean isMarked = false;
+  boolean isMarked = false;
   /** flag for line segment type, associated with LineVertex */
   public final static int LINE_SEGMENT = 1;
   /** flag for curve segment type, associated with BezVertex */
   public final static int CURVE_SEGMENT = 2;
+  /* ----- COLOR FILL AND STROKE PROPERTIES ----- */
+  /** flags if shape is filled or not */
+  boolean hasFill;
+  /** flags if shape has a stroke or not */
+  boolean hasStroke;
+  /** fill color for shape */
+  int fillColor;
+  /** stroke color for shape */
+  int strokeColor;
+  /** stroke weight for shape */
+  float weight;
+  
+  
   /** 
    *  KAPPA = (distance between Bezier anchor and its associated control point) / (circle radius)
    *  when a circle is divided into 4 sectors of 90 degrees.
@@ -135,6 +148,165 @@ public class BezShape {
    */
   public void setIsMarked(boolean newIsMarked) {
     isMarked = newIsMarked;
+  }
+
+  /*-------------------------------------------------------------------------------------------*/
+  /*                                                                                           */
+  /* METHODS TO SET COLOR FILL, STROKE, AND WEIGHT                                             */ 
+  /*                                                                                           */
+  /*-------------------------------------------------------------------------------------------*/
+
+  /**
+   * @return   true if this component is filled, false otherwise
+   */
+  public boolean hasFill() {
+    return hasFill;
+  }
+  /**
+   * @param newHasFill   pass true if this shape has a fill, false otherwise. Note that
+   * the current fillColor will not be discarded by setting hasFill to false: the shape
+   * simply won't display or save to file with a fill. 
+   */
+  public void setHasFill(boolean newHasFill) {
+    hasFill = newHasFill;
+  }
+  /**
+   * Marks this component as having no fill.
+   * Equivalent to setHasFill(false), if the implementor provides a setHasFill method
+   */
+  public void setNoFill() {
+    setHasFill(false);
+  }
+
+  /**
+   * @return   true if this shape is stroked, false otherwise
+   */
+  public boolean hasStroke() {
+    return hasStroke;
+  }
+  /**
+   * @param newHasStroke   pass true if this shape has a stroke, false otherwise. Note that
+   * the current strokeColor will not be discarded by setting hasStroke to false: the shape
+   * simply won't display or save to file with a stroke.
+   */
+  public void setHasStroke(boolean newHasStroke) {
+    hasStroke = newHasStroke;
+  }
+  /**
+   * Marks this component as having no stroke
+   * Equivalent to setHasStroke(false), if the implementor provides a setHasStroke method
+   */
+  public void setNoStroke() {
+    setHasStroke(false);
+  }
+  
+  /**
+   * @return the current fill color
+   */
+  public int fillColor() {
+    return fillColor;
+  }
+  /**
+   * @param newFillColor   a Processing color (32-bit int with ARGB bytes).
+   */
+  public void setFillColor(int newFillColor) {
+    fillColor = newFillColor;
+    setHasFill(true);
+  }
+
+  /**
+   * @return the current stroke color
+   */
+  public int strokeColor() {
+    return this.strokeColor;
+  }
+  /**
+   * @param newStrokeColor   a Processing color (32-bit int with ARGB bytes).
+   */
+  public void setStrokeColor(int newStrokeColor) {
+    this.strokeColor = newStrokeColor;
+    this.setHasStroke(true);
+  }
+
+  /**
+   * Sets opacity of current fill color.
+   * @param opacity   a number in the range 0..255. Value is not checked!
+   */
+  public void setFillOpacity(int opacity) {
+    int[] argb = argbComponents(this.fillColor);
+    this.setFillColor(composeColor(argb[1], argb[2], argb[3], opacity));
+  }
+  /**
+   * @return   the opacity value of the current fill color
+   */
+  public int fillOpacity() {
+    int[] argb = argbComponents(this.fillColor);
+    return argb[0];
+  }
+  
+  /**
+   * Sets opacity of current stroke color.
+   * @param opacity   a number in the range 0..255. Value is not checked!
+   */
+  public void setStrokeOpacity(int opacity) {
+    int[] argb = argbComponents(this.strokeColor);
+    this.setStrokeColor(composeColor(argb[1], argb[2], argb[3], opacity));
+  }
+  /**
+   * @return   the opacity value of the current stroke color
+   */
+  public int strokeOpacity() {
+    int[] argb = argbComponents(this.strokeColor);
+    return argb[0];
+  }
+  
+  /**
+   * Returns the current weight (in points) of stroked lines.
+   * @return the current weight (in points) of stroked lines. One point = one pixel on screen.
+   */
+  public float weight() {
+    return weight;
+  }
+  /**
+   * @param newWeight the new weight of stroked lines.
+   */
+  public void setWeight(float newWeight) {
+    weight = newWeight;
+  }
+
+  /**
+   * Breaks a Processing color into A, R, G and B values in an array.
+   * @param argb   a Processing color as a 32-bit integer 
+   * @return       an array of integers in the range 0..255 for each color component: {A, R, G, B}
+   */
+  public int[] argbComponents(int argb) {
+    int[] comp = new int[4];
+    comp[0] = (argb >> 24) & 0xFF;  // alpha
+    comp[1] = (argb >> 16) & 0xFF;  // Faster way of getting red(argb)
+    comp[2] = (argb >> 8) & 0xFF;   // Faster way of getting green(argb)
+    comp[3] = argb & 0xFF;          // Faster way of getting blue(argb)
+    return comp;
+  }
+
+  /**
+   * Creates a Processing ARGB color from r, g, b, and alpha channel values. Note the order
+   * of arguments, the same as the Processing color(value1, value2, value3, alpha) method. 
+   * @param r   red component 0..255
+   * @param g   green component 0..255
+   * @param b   blue component 0..255
+   * @param a   alpha component 0..255
+   * @return    a 32-bit integer with bytes in Processing format ARGB.
+   */
+  public int composeColor(int r, int g, int b, int a) {
+    return a << 24 | r << 16 | g << 8 | b;
+  }
+  /**
+   * Creates a Processing ARGB color from a grayscale value. Alpha will be set to 255.
+   * @param gray   a grayscale value 0..255
+   * @return       an int compatible with a Processing color
+   */
+  public int composeColor(int gray) {
+    return 255 << 24 | gray << 16 | gray << 8 | gray;
   }
 
 
@@ -302,28 +474,28 @@ public class BezShape {
       bez.draw(pg); 
       if (isMarked) {
          if (bez.segmentType() == CURVE_SEGMENT) {
-          pushStyle();
-          noFill();
-          stroke(192);
-          strokeWeight(1);
+          pg.pushStyle();
+          pg.noFill();
+          pg.stroke(192);
+          pg.strokeWeight(1);
           BezVertex bz = (BezVertex)bez;
           if (i > 0) {
-            line(curves.get(i-1).x(), curves.get(i-1).y(), bz.cx1(), bz.cy1());
-            line(bz.x(), bz.y(), bz.cx2(), bz.cy2());
+            pg.line(curves.get(i-1).x(), curves.get(i-1).y(), bz.cx1(), bz.cy1());
+            pg.line(bz.x(), bz.y(), bz.cx2(), bz.cy2());
           }
           else {
             int w = 6;
-            pushStyle();
-            noStroke();
-            fill(160);
-            square(x - w/2, y - w/2, w);
-            popStyle();
-            line(x, y, bz.cx1(), bz.cy1());
-            line(bz.x(), bz.y(), bz.cx2(), bz.cy2());
+            pg.pushStyle();
+            pg.noStroke();
+            pg.fill(160);
+            pg.square(x - w/2, y - w/2, w);
+            pg.popStyle();
+            pg.line(x, y, bz.cx1(), bz.cy1());
+            pg.line(bz.x(), bz.y(), bz.cx2(), bz.cy2());
           }
-          popStyle();
+          pg.popStyle();
         }
-        bez.mark();
+        bez.mark(pg);
       }
       i++;
     }
@@ -335,5 +507,201 @@ public class BezShape {
     }
   }
 
+  /** 
+   * Draws this shape to the display. Calls beginShape and endShape on its own.
+   * If isMarked is true, will mark anchor and control points.
+   */
+  public void draw() {
+    parent.beginShape();
+    if (hasFill()) {
+      parent.fill(fillColor);
+    }
+    else {
+      parent.noFill();
+    }
+    if (hasStroke()) {
+      parent.stroke(strokeColor);
+    }
+    else {
+      parent.noStroke();
+    }
+    parent.strokeWeight(weight);
+    parent.vertex(this.x, this.y);
+    ListIterator<Vertex2DINF> it = curveIterator();
+    int i = 0;
+    while (it.hasNext()) {
+      Vertex2DINF bez = it.next();
+      bez.draw(parent);
+      if (isMarked) {
+      if (bez.segmentType() == CURVE_SEGMENT) {
+       parent.pushStyle();
+       parent.noFill();
+       parent.stroke(192);
+       parent.strokeWeight(1);
+       BezVertex bz = (BezVertex)bez;
+       if (i > 0) {
+         parent.line(curves.get(i-1).x(), curves.get(i-1).y(), bz.cx1(), bz.cy1());
+         parent.line(bz.x(), bz.y(), bz.cx2(), bz.cy2());
+       }
+       else {
+         int w = 6;
+         parent.pushStyle();
+         parent.noStroke();
+         parent.fill(160);
+         // parent.square(x - w/2, y - w/2, w);
+         parent.rect(x - w/2, y - w/2, w, w);
+         parent.popStyle();
+         parent.line(x, y, bz.cx1(), bz.cy1());
+         parent.line(bz.x(), bz.y(), bz.cx2(), bz.cy2());
+       }
+       parent.popStyle();
+       }
+       bez.mark();
+      }
+      i++;
+      }
+      if (isClosed()) {
+        parent.endShape(PApplet.CLOSE);
+      }
+      else {
+        parent.endShape();
+      }
+  }
+
+  /** 
+   * Draws this shape to an offscreen PGraphics. Calls beginShape and endShape on its own. 
+   * It's up to the user to call beginDraw() and endDraw() on the PGraphics instance.
+   * If isMarked is true, draws marks for anchor and control points.
+   * @param pg   a PGraphics instance
+   */
+  public void draw(PGraphics pg) {
+     pg.beginShape();
+    if (hasFill()) {
+      pg.fill(fillColor);
+    }
+    else {
+      pg.noFill();
+    }
+    if (hasStroke()) {
+      pg.stroke(strokeColor);
+    }
+    else {
+      pg.noStroke();
+    }
+    pg.strokeWeight(weight);
+    // equivalent to startPoint.draw(this.parent);
+    pg.vertex(this.x, this.y);
+    ListIterator<Vertex2DINF> it = curveIterator();
+    int i = 0;
+    while (it.hasNext()) {
+      Vertex2DINF bez = it.next();
+      bez.draw(pg);
+      if (isMarked) {
+        if (bez.segmentType() == CURVE_SEGMENT) {
+         pg.pushStyle();
+         pg.noFill();
+         pg.stroke(192);
+         pg.strokeWeight(1);
+         BezVertex bz = (BezVertex)bez;
+         if (i > 0) {
+           pg.line(curves.get(i-1).x(), curves.get(i-1).y(), bz.cx1(), bz.cy1());
+           pg.line(bz.x(), bz.y(), bz.cx2(), bz.cy2());
+         }
+         else {
+           int w = 6;
+           pg.pushStyle();
+           pg.noStroke();
+           pg.fill(160);
+           // pg.square(x - w/2, y - w/2, w);
+           pg.rect(x - w/2, y - w/2, w, w);
+           pg.popStyle();
+           pg.line(x, y, bz.cx1(), bz.cy1());
+           pg.line(bz.x(), bz.y(), bz.cx2(), bz.cy2());
+         }
+         pg.popStyle();
+       }
+       bez.mark();
+      }
+      i++;
+    }
+    if (isClosed()) {
+      pg.endShape(PApplet.CLOSE);
+    }
+    else {
+      pg.endShape();
+    }
+  }
+
+
+  /**
+   * Extracts an approximated polygon from path data, returning it as an array of floats.
+   * Rebuilds the {@code xcoords} and {@code ycoords} arrays. Polygon data is not cached, but the
+   * {@code xcoords} and {@code ycoords} arrays are. You can use them to construct a polygon once 
+   * they have been initialized. If, against our good advice, you munge around with
+   * shape geometry, you can reset {@code xcoords} and {@code ycoords} with a call to 
+   * this method, which always recalculates {@code xcoords} and {@code ycoords} and {@code boundsRect}
+   * @param steps    number of straight line segments to divide Bezier curves into
+   * @return         ArrayList of PVector, coordinates for a polygon approximation of this shape.
+   */
+  public ArrayList<PVector> getPointList(int steps) {
+    ArrayList<PVector> curvePoints = new ArrayList<PVector>();
+
+    ListIterator<Vertex2DINF> it = curves.listIterator();
+    // calculate the total number of points in the result array
+    // start counting points at 1, since start point (at indices 0 and 1) will begin the array
+    int ct = 1;
+    while (it.hasNext()) {
+      Vertex2DINF vt = it.next();
+      int segType = vt.segmentType();
+      if (CURVE_SEGMENT == segType) {
+        // divide the curve into steps lines
+        ct += steps;
+      }
+      else if (LINE_SEGMENT == segType) {
+        ct += 1;
+      }
+    }
+    // each point is comprised of 2 floats
+    float[] points = new float[ct * 2];
+    // add the start point to the array
+    int i = 0;
+    points[i++] = this.x;
+    points[i++] = this.y;
+    // retrieve x and y values
+    float currentX = points[i - 2];
+    float currentY = points[i - 1];
+    // reset the iterator to the beginning
+    it = curves.listIterator();
+    while (it.hasNext()) {
+      Vertex2DINF vt = it.next();
+      int segType = vt.segmentType();
+      if (CURVE_SEGMENT == segType) {
+        float[] knots = vt.coords();
+        float cx1 = knots[0];
+        float cy1 = knots[1];
+        float cx2 = knots[2];
+        float cy2 = knots[3];
+        float ax  = knots[4];
+        float ay  = knots[5];
+        for (int j = 1; j <= steps; j++) {
+          float t = j / (float) steps;
+          float segx = parent.bezierPoint(currentX, cx1, cx2, ax, t);
+          float segy = parent.bezierPoint(currentY, cy1, cy2, ay, t);
+          points[i++] = segx;
+          points[i++] = segy;
+        }
+      }
+      else if (LINE_SEGMENT == segType) {
+        points[i++] = vt.x();
+        points[i++] = vt.y();
+      }
+      currentX = points[i - 2];
+      currentY = points[i - 1];
+    }
+    for (int j = 0; j < i; ) {
+      curvePoints.add(new PVector(points[j++], points[j++]));
+    }
+    return curvePoints;
+  }
 
 }

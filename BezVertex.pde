@@ -135,5 +135,18 @@ public class BezVertex implements Vertex2DINF {
     square(x - w/2, y - w/2, w);
     popStyle();
   }
-  
+
+  public void mark(PGraphics pg) {
+    int w = 6;
+    int d = w - 1;
+    pg.pushStyle();
+    pg.noStroke();
+    pg.fill(192);
+    pg.ellipse(cx1,cy1, d, d);
+    pg.ellipse(cx2,cy2, d, d);
+    pg.fill(160);
+    pg.square(x - w/2, y - w/2, w);
+    pg.popStyle();
+  }
+
 }

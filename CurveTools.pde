@@ -284,7 +284,7 @@ public BezShape quickBrushShape(ArrayList<PVector> points, float brushWidth) {
   pointsRight.add(v1.copy());
   // reverse one of the arrays
   reverseArray(pointsLeft, 0, pointsLeft.size() - 1);
-  // generate Bezier splines
+  // generate two Bezier splines
   BezShape bezLeft = calculateCurve(pointsLeft);
   BezShape bezRight = calculateCurve(pointsRight);
   if (isDrawWeighted) {

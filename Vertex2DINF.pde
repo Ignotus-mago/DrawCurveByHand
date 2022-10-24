@@ -47,4 +47,8 @@ public interface Vertex2DINF {
    * Draws marks at vertices and control points.
    */
   public void mark();
+  /**
+   * Draws marks at vertices and control points to an off-screen PGraphics.
+   */
+  public void mark(PGraphics pg);
 }
